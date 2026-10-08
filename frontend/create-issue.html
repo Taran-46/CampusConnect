@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusConnect - Report an Issue</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="dashboard.html" class="brand">
+        <span class="brand-icon">🎓</span>
+        <span>CampusConnect</span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+          <li><a href="create-issue.html" class="nav-link active">+ Report Issue</a></li>
+          <li><a href="profile.html" class="nav-link">My Profile</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-user" id="nav-user-container"></div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      <div style="max-width: 680px; margin: 0 auto;">
+        
+        <div class="section-header" style="margin-bottom: 1.25rem;">
+          <div>
+            <h1 class="section-title">Report a Campus Issue</h1>
+            <p class="section-desc">Submit maintenance, equipment, or facility issues for the campus community.</p>
+          </div>
+          <div>
+            <a href="dashboard.html" class="btn btn-outline btn-sm">&larr; Back to Dashboard</a>
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <form id="create-issue-form">
+            
+            <div class="form-group">
+              <label for="issue-title" class="form-label">Issue Title *</label>
+              <input 
+                type="text" 
+                id="issue-title" 
+                class="form-control" 
+                placeholder="e.g., Projector bulb flickering in Room 302" 
+                required 
+                minlength="3" 
+                maxlength="150"
+              >
+              <p class="form-hint">Keep the title concise and mention the location if applicable.</p>
+            </div>
+
+            <div class="form-group">
+              <label for="issue-category" class="form-label">Category *</label>
+              <select id="issue-category" class="form-select" required>
+                <option value="" disabled selected>-- Select an Issue Category --</option>
+                <option value="Classroom">Classroom (e.g., Fan not working, Light issue, Projector problem)</option>
+                <option value="Campus">Campus (e.g., Wi-Fi not working, Cleanliness issue, Water cooler)</option>
+                <option value="Lost & Found">Lost & Found (e.g., Lost ID card, Found water bottle, Lost notebook)</option>
+                <option value="General">General (e.g., Library issue, Lab equipment, Other campus problem)</option>
+              </select>
+              <p class="form-hint">Selecting the right category helps speed up resolution.</p>
+            </div>
+
+            <div class="form-group">
+              <label for="issue-description" class="form-label">Detailed Description *</label>
+              <textarea 
+                id="issue-description" 
+                class="form-control" 
+                rows="6" 
+                placeholder="Describe the issue in detail: exact location, when you noticed it, and any other relevant context..." 
+                required 
+                minlength="5" 
+                maxlength="3000"
+              ></textarea>
+              <p class="form-hint">Minimum 5 characters. Be specific so maintenance staff or peers can assist.</p>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+              <a href="dashboard.html" class="btn btn-secondary">Cancel</a>
+              <button type="submit" id="submit-issue-btn" class="btn btn-primary">
+                Submit Issue
+              </button>
+            </div>
+
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <span>&copy; 2026 CampusConnect. Real-time Student Issue Resolution.</span>
+      <span>Empowering campus collaboration</span>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/create_issue.js"></script>
+</body>
+</html>

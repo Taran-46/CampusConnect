@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusConnect - Issue Details</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="dashboard.html" class="brand">
+        <span class="brand-icon">🎓</span>
+        <span>CampusConnect</span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+          <li><a href="create-issue.html" class="nav-link">+ Report Issue</a></li>
+          <li><a href="profile.html" class="nav-link">My Profile</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-user" id="nav-user-container"></div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      <div style="max-width: 780px; margin: 0 auto;">
+        
+        <div style="margin-bottom: 1.25rem;">
+          <a href="dashboard.html" class="btn btn-outline btn-sm">&larr; Back to Dashboard</a>
+        </div>
+
+        <!-- Issue Detail Container -->
+        <div id="detail-content">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading issue details...</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <span>&copy; 2026 CampusConnect. Real-time Student Issue Resolution.</span>
+      <span>Empowering campus collaboration</span>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Require auth
+      if (!auth.requireAuth()) return;
+
+      const detailContainer = document.getElementById("detail-content");
+      const urlParams = new URLSearchParams(window.location.search);
+      const issueId = urlParams.get("id");
+
+      if (!issueId) {
+        detailContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">❓</div>
+            <h3>No Issue Specified</h3>
+            <p>Please select an issue from the dashboard to view its full details.</p>
+            <a href="dashboard.html" class="btn btn-primary btn-sm">Go to Dashboard</a>
+          </div>
+        `;
+        return;
+      }
+
+      function formatDate(isoString) {
+        if (!isoString) return "N/A";
+        try {
+          const d = new Date(isoString);
+          return d.toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+          });
+        } catch {
+          return isoString;
+        }
+      }
+
+      function getCategoryBadgeClass(category) {
+        const slug = category.toLowerCase().replace(/[^a-z0-9]/g, "-");
+        return `badge-category-${slug}`;
+      }
+
+      function getStatusBadgeClass(status) {
+        const slug = status.toLowerCase().replace(/\s+/g, "-");
+        return `badge-status-${slug}`;
+      }
+
+      async function loadIssueDetail() {
+        try {
+          const issue = await api.getIssue(issueId);
+          renderDetail(issue);
+        } catch (err) {
+          detailContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">⚠️</div>
+              <h3>Issue Not Found</h3>
+              <p>${err.message || "The requested issue could not be found or has been removed."}</p>
+              <a href="dashboard.html" class="btn btn-primary btn-sm">Return to Dashboard</a>
+            </div>
+          `;
+        }
+      }
+
+      function renderDetail(issue) {
+        detailContainer.innerHTML = "";
+
+        const card = document.createElement("div");
+        card.className = "detail-card";
+
+        // Header
+        const header = document.createElement("div");
+        header.className = "detail-header";
+
+        const badges = document.createElement("div");
+        badges.className = "detail-badges";
+
+        const categoryBadge = document.createElement("span");
+        categoryBadge.className = `badge ${getCategoryBadgeClass(issue.category)}`;
+        categoryBadge.textContent = issue.category;
+
+        const statusBadge = document.createElement("span");
+        statusBadge.id = "current-status-badge";
+        statusBadge.className = `badge ${getStatusBadgeClass(issue.status)}`;
+        statusBadge.textContent = issue.status;
+
+        badges.appendChild(categoryBadge);
+        badges.appendChild(statusBadge);
+
+        const title = document.createElement("h1");
+        title.className = "detail-title";
+        title.textContent = issue.title;
+
+        header.appendChild(badges);
+        header.appendChild(title);
+
+        // Meta Box
+        const metaBox = document.createElement("div");
+        metaBox.className = "detail-meta-box";
+
+        metaBox.innerHTML = `
+          <div>
+            <div class="meta-item-label">Submitted By</div>
+            <div class="meta-item-value" id="detail-submitter">👤 ${escapeHTML(issue.submitted_by_name || "Student")}</div>
+          </div>
+          <div>
+            <div class="meta-item-label">Department / Year</div>
+            <div class="meta-item-value">${escapeHTML(issue.submitted_by_department || "Campus")}</div>
+          </div>
+          <div>
+            <div class="meta-item-label">Reported On</div>
+            <div class="meta-item-value">${formatDate(issue.created_at)}</div>
+          </div>
+          <div>
+            <div class="meta-item-label">Last Updated</div>
+            <div class="meta-item-value" id="detail-updated">${formatDate(issue.updated_at)}</div>
+          </div>
+        `;
+
+        // Description Body
+        const body = document.createElement("div");
+        body.className = "detail-body";
+        body.textContent = issue.description;
+
+        // Status Update Workflow Panel
+        const updatePanel = document.createElement("div");
+        updatePanel.className = "status-update-panel";
+
+        updatePanel.innerHTML = `
+          <div>
+            <strong style="color: var(--slate-900); display: block; font-size: 0.9375rem;">Update Issue Status</strong>
+            <span style="font-size: 0.8125rem; color: var(--slate-600);">Keep the campus community informed of the progress.</span>
+          </div>
+          <form id="status-form" class="status-update-form">
+            <select id="status-select" class="form-select" style="width: auto; min-width: 150px;">
+              <option value="Open" ${issue.status === "Open" ? "selected" : ""}>Open</option>
+              <option value="In Progress" ${issue.status === "In Progress" ? "selected" : ""}>In Progress</option>
+              <option value="Resolved" ${issue.status === "Resolved" ? "selected" : ""}>Resolved</option>
+            </select>
+            <button type="submit" id="update-status-btn" class="btn btn-primary btn-sm">
+              Update Status
+            </button>
+          </form>
+        `;
+
+        card.appendChild(header);
+        card.appendChild(metaBox);
+        card.appendChild(body);
+        card.appendChild(updatePanel);
+
+        detailContainer.appendChild(card);
+
+        // Bind Status Update Form
+        const statusForm = document.getElementById("status-form");
+        const statusSelect = document.getElementById("status-select");
+        const updateBtn = document.getElementById("update-status-btn");
+
+        statusForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const newStatus = statusSelect.value;
+          updateBtn.disabled = true;
+          updateBtn.textContent = "Updating...";
+
+          try {
+            const updated = await api.updateIssueStatus(issue.id, newStatus);
+            showToast(`Status updated to "${newStatus}"!`, "success");
+
+            // Update DOM dynamically
+            const badge = document.getElementById("current-status-badge");
+            if (badge) {
+              badge.className = `badge ${getStatusBadgeClass(updated.status)}`;
+              badge.textContent = updated.status;
+            }
+            const updatedTime = document.getElementById("detail-updated");
+            if (updatedTime) {
+              updatedTime.textContent = formatDate(updated.updated_at);
+            }
+          } catch (err) {
+            showToast(err.message || "Failed to update status.", "error");
+          } finally {
+            updateBtn.disabled = false;
+            updateBtn.textContent = "Update Status";
+          }
+        });
+      }
+
+      function escapeHTML(str) {
+        if (!str) return "";
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      await loadIssueDetail();
+    });
+  </script>
+</body>
+</html>

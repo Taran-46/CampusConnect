@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusConnect - Student Issue Reporting Portal</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Minimal Brand Header -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="brand">
+        <span class="brand-icon">🎓</span>
+        <span>CampusConnect</span>
+      </a>
+      <div class="nav-user">
+        <span class="badge badge-category-campus">Campus Portal v1.0</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Auth Container -->
+  <main class="main-content">
+    <div class="container auth-wrapper">
+      <div class="auth-card">
+        
+        <div class="auth-header">
+          <div class="auth-logo">🏛️</div>
+          <h1>CampusConnect</h1>
+          <p>Report, track, and resolve campus issues collaboratively.</p>
+        </div>
+
+        <!-- Auth Tabs Toggle -->
+        <div class="auth-tabs" role="tablist">
+          <button id="tab-login" class="auth-tab-btn active" role="tab" type="button">Sign In</button>
+          <button id="tab-register" class="auth-tab-btn" role="tab" type="button">Register</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email" class="form-label">Campus Email</label>
+            <input 
+              type="email" 
+              id="login-email" 
+              class="form-control" 
+              placeholder="e.g., student@campus.edu" 
+              required
+              autocomplete="email"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="login-password" class="form-label">Password</label>
+            <input 
+              type="password" 
+              id="login-password" 
+              class="form-control" 
+              placeholder="••••••••" 
+              required
+              autocomplete="current-password"
+            >
+          </div>
+
+          <button type="submit" id="login-submit-btn" class="btn btn-primary btn-block">
+            Sign In
+          </button>
+
+          <p class="form-hint" style="text-align: center; margin-top: 1rem;">
+            Demo account: <strong>aarav.sharma@campus.edu</strong> / <strong>password123</strong>
+          </p>
+        </form>
+
+        <!-- Register Form (Hidden by default) -->
+        <form id="register-form" style="display: none;">
+          <div class="form-group">
+            <label for="reg-name" class="form-label">Full Name</label>
+            <input 
+              type="text" 
+              id="reg-name" 
+              class="form-control" 
+              placeholder="e.g., Jane Doe" 
+              required
+              autocomplete="name"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="reg-email" class="form-label">Campus Email</label>
+            <input 
+              type="email" 
+              id="reg-email" 
+              class="form-control" 
+              placeholder="e.g., jane.doe@campus.edu" 
+              required
+              autocomplete="email"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="reg-dept" class="form-label">Department / Year</label>
+            <input 
+              type="text" 
+              id="reg-dept" 
+              class="form-control" 
+              placeholder="e.g., Mechanical Eng - 2nd Year" 
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="reg-password" class="form-label">Password</label>
+            <input 
+              type="password" 
+              id="reg-password" 
+              class="form-control" 
+              placeholder="At least 6 characters" 
+              minlength="6" 
+              required
+              autocomplete="new-password"
+            >
+          </div>
+
+          <button type="submit" id="reg-submit-btn" class="btn btn-primary btn-block">
+            Create Account
+          </button>
+        </form>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <span>&copy; 2026 CampusConnect. Built with FastAPI & Vanilla Web Stack.</span>
+      <span>Empowering campus student communities</span>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

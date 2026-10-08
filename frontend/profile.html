@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusConnect - Student Profile</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="dashboard.html" class="brand">
+        <span class="brand-icon">🎓</span>
+        <span>CampusConnect</span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+          <li><a href="create-issue.html" class="nav-link">+ Report Issue</a></li>
+          <li><a href="profile.html" class="nav-link active">My Profile</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-user" id="nav-user-container"></div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="container">
+      
+      <!-- Student Profile Card -->
+      <section id="profile-container" aria-label="Student Profile Information">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          <p>Loading student profile...</p>
+        </div>
+      </section>
+
+      <!-- Submissions Section -->
+      <section style="margin-top: 2.5rem;">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">My Submitted Issues</h2>
+            <p class="section-desc">Track all campus issues you have authored.</p>
+          </div>
+          <div>
+            <a href="create-issue.html" class="btn btn-primary btn-sm">+ Report Another Issue</a>
+          </div>
+        </div>
+
+        <div id="user-issues-container" class="issues-grid">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading your reported issues...</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <span>&copy; 2026 CampusConnect. Real-time Student Issue Resolution.</span>
+      <span>Empowering campus collaboration</span>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (!auth.requireAuth()) return;
+
+      const profileContainer = document.getElementById("profile-container");
+      const userIssuesContainer = document.getElementById("user-issues-container");
+
+      function formatDate(isoString) {
+        if (!isoString) return "";
+        try {
+          const d = new Date(isoString);
+          return d.toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            year: "numeric"
+          });
+        } catch {
+          return isoString;
+        }
+      }
+
+      function getCategoryBadgeClass(category) {
+        const slug = category.toLowerCase().replace(/[^a-z0-9]/g, "-");
+        return `badge-category-${slug}`;
+      }
+
+      function getStatusBadgeClass(status) {
+        const slug = status.toLowerCase().replace(/\s+/g, "-");
+        return `badge-status-${slug}`;
+      }
+
+      try {
+        // Fetch current profile from backend
+        const user = await api.getMe();
+        auth.setCurrentUser(user);
+
+        const initial = user.full_name ? user.full_name.charAt(0).toUpperCase() : "S";
+
+        profileContainer.innerHTML = `
+          <div class="profile-card">
+            <div class="profile-avatar-large">${initial}</div>
+            <div class="profile-info">
+              <h2>${escapeHTML(user.full_name)}</h2>
+              <p>📧 ${escapeHTML(user.email)}</p>
+              <div class="profile-department">🏛️ ${escapeHTML(user.department)}</div>
+              <p style="font-size: 0.8125rem; color: var(--slate-400); margin-top: 0.5rem;">
+                Member since: ${formatDate(user.created_at)}
+              </p>
+            </div>
+          </div>
+        `;
+
+        // Fetch issues authored by this student
+        const myIssues = await api.getIssues({ userId: user.id });
+
+        userIssuesContainer.innerHTML = "";
+        if (!myIssues || myIssues.length === 0) {
+          userIssuesContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📝</div>
+              <h3>No Issues Reported Yet</h3>
+              <p>You haven't reported any campus issues yet. Found something that needs attention around campus?</p>
+              <a href="create-issue.html" class="btn btn-primary btn-sm">+ Report First Issue</a>
+            </div>
+          `;
+          return;
+        }
+
+        myIssues.forEach((issue) => {
+          const card = document.createElement("article");
+          card.className = "issue-card";
+          card.setAttribute("role", "button");
+          card.setAttribute("tabindex", "0");
+          card.title = `View details for #${issue.id}`;
+
+          card.innerHTML = `
+            <div class="issue-card-header">
+              <span class="badge ${getCategoryBadgeClass(issue.category)}">${escapeHTML(issue.category)}</span>
+              <span class="badge ${getStatusBadgeClass(issue.status)}">${escapeHTML(issue.status)}</span>
+            </div>
+            <h3 class="issue-card-title">${escapeHTML(issue.title)}</h3>
+            <p class="issue-card-desc">${escapeHTML(issue.description)}</p>
+            <div class="issue-card-footer">
+              <span class="issue-meta-user">Status: <strong>${escapeHTML(issue.status)}</strong></span>
+              <span class="issue-meta-date">${formatDate(issue.created_at)}</span>
+            </div>
+          `;
+
+          const navigate = () => {
+            window.location.href = `issue-detail.html?id=${issue.id}`;
+          };
+          card.addEventListener("click", navigate);
+          card.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              navigate();
+            }
+          });
+
+          userIssuesContainer.appendChild(card);
+        });
+
+      } catch (err) {
+        profileContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⚠️</div>
+            <h3>Failed to Load Profile</h3>
+            <p>${err.message || "Could not retrieve student details."}</p>
+          </div>
+        `;
+      }
+
+      function escapeHTML(str) {
+        if (!str) return "";
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+    });
+  </script>
+</body>
+</html>
