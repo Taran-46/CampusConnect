@@ -10,9 +10,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const titleInput = document.getElementById("issue-title");
   const categorySelect = document.getElementById("issue-category");
   const descTextarea = document.getElementById("issue-description");
+  const charCounter = document.getElementById("char-counter");
   const submitBtn = document.getElementById("submit-issue-btn");
 
   if (!issueForm) return;
+
+  // Simple Character Counter for Viva demonstration
+  if (descTextarea && charCounter) {
+    descTextarea.addEventListener("input", () => {
+      const currentLength = descTextarea.value.length;
+      charCounter.textContent = `${currentLength} / 3000`;
+      if (currentLength > 2900) {
+        charCounter.style.color = "var(--danger-500, #ef4444)";
+      } else {
+        charCounter.style.color = "var(--slate-500)";
+      }
+    });
+  }
 
   issueForm.addEventListener("submit", async (e) => {
     e.preventDefault();

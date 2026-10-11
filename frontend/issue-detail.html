@@ -58,12 +58,20 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="js/api.js"></script>
-  <script src="js/auth.js"></script>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       // Require auth
       if (!auth.requireAuth()) return;
+
+      // Ensure fresh user info from server so user id is always up to date
+      try {
+        const freshUser = await api.getMe();
+        if (freshUser) auth.setCurrentUser(freshUser);
+      } catch (e) {
+        console.warn("Could not refresh current user profile", e);
+      }
 
       const detailContainer = document.getElementById("detail-content");
       const urlParams = new URLSearchParams(window.location.search);
@@ -187,12 +195,16 @@
         const updatePanel = document.createElement("div");
         updatePanel.className = "status-update-panel";
 
+        // Check if the current logged-in student is the author of this issue
+        const currentUser = auth.getCurrentUser();
+        const isOwner = currentUser && (Number(currentUser.id) === Number(issue.user_id));
+
         updatePanel.innerHTML = `
           <div>
             <strong style="color: var(--slate-900); display: block; font-size: 0.9375rem;">Update Issue Status</strong>
             <span style="font-size: 0.8125rem; color: var(--slate-600);">Keep the campus community informed of the progress.</span>
           </div>
-          <form id="status-form" class="status-update-form">
+          <form id="status-form" class="status-update-form" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
             <select id="status-select" class="form-select" style="width: auto; min-width: 150px;">
               <option value="Open" ${issue.status === "Open" ? "selected" : ""}>Open</option>
               <option value="In Progress" ${issue.status === "In Progress" ? "selected" : ""}>In Progress</option>
@@ -209,7 +221,76 @@
         card.appendChild(body);
         card.appendChild(updatePanel);
 
+        // Add Delete Option Panel if the student is the author
+        if (isOwner) {
+          const deleteContainer = document.createElement("div");
+          deleteContainer.style.marginTop = "1rem";
+          deleteContainer.style.padding = "1rem 1.25rem";
+          deleteContainer.style.backgroundColor = "var(--slate-50)";
+          deleteContainer.style.borderRadius = "var(--radius-md)";
+          deleteContainer.style.border = "1px solid var(--slate-200)";
+          deleteContainer.style.display = "flex";
+          deleteContainer.style.justifyContent = "space-between";
+          deleteContainer.style.alignItems = "center";
+          deleteContainer.style.flexWrap = "wrap";
+          deleteContainer.style.gap = "0.75rem";
+
+          deleteContainer.innerHTML = `
+            <div>
+              <strong style="color: #ef4444; font-size: 0.875rem; display: block;">Author Actions</strong>
+              <span style="font-size: 0.8125rem; color: var(--slate-600);">You reported this issue. You can permanently remove it if it was resolved or created by mistake.</span>
+            </div>
+            <button type="button" id="delete-issue-btn" class="btn btn-sm" style="background-color: #ef4444; color: #ffffff; border: none;">
+              🗑️ Delete Issue
+            </button>
+          `;
+
+          card.appendChild(deleteContainer);
+        }
+
         detailContainer.appendChild(card);
+
+        // Bind Delete Issue Button (Only for Author)
+        if (isOwner) {
+          const deleteBtn = document.getElementById("delete-issue-btn");
+          if (deleteBtn) {
+            deleteBtn.onclick = async () => {
+              const confirmed = window.confirm("Are you sure you want to delete this issue? This action cannot be undone.");
+              if (!confirmed) return;
+
+              deleteBtn.disabled = true;
+              deleteBtn.textContent = "Deleting...";
+
+              try {
+                if (typeof api.deleteIssue === "function") {
+                  await api.deleteIssue(issue.id);
+                } else {
+                  // Direct fetch fallback in case browser has an aggressively cached js/api.js file
+                  const token = localStorage.getItem("cc_auth_token");
+                  const resp = await fetch(`/api/issues/${issue.id}`, {
+                    method: "DELETE",
+                    headers: {
+                      "Accept": "application/json",
+                      "Authorization": `Bearer ${token}`
+                    }
+                  });
+                  if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    throw new Error(errData.detail || "Failed to delete issue.");
+                  }
+                }
+                showToast("Issue deleted successfully!", "success");
+                setTimeout(() => {
+                  window.location.href = "dashboard.html";
+                }, 600);
+              } catch (err) {
+                showToast(err.message || "Failed to delete issue.", "error");
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = "🗑️ Delete Issue";
+              }
+            };
+          }
+        }
 
         // Bind Status Update Form
         const statusForm = document.getElementById("status-form");

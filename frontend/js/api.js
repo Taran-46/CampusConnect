@@ -181,6 +181,12 @@ const api = {
       body: JSON.stringify({ status: newStatus }),
     });
   },
+
+  async deleteIssue(id) {
+    return await apiFetch(`/issues/${id}`, {
+      method: "DELETE",
+    });
+  },
 };
 
 // Make accessible globally

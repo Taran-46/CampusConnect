@@ -167,6 +167,27 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    // Helper function for Viva: Toggle password input between 'password' and 'text'
+    function setupPasswordToggle(btnId, inputId) {
+      const btn = document.getElementById(btnId);
+      const input = document.getElementById(inputId);
+      if (btn && input) {
+        btn.addEventListener("click", () => {
+          if (input.type === "password") {
+            input.type = "text";
+            btn.textContent = "🙈";
+          } else {
+            input.type = "password";
+            btn.textContent = "👁️";
+          }
+        });
+      }
+    }
+
+    setupPasswordToggle("toggle-login-password", "login-password");
+    setupPasswordToggle("toggle-reg-password", "reg-password");
+    setupPasswordToggle("toggle-reg-confirm-password", "reg-confirm-password");
+
     // Register Form Submit
     registerForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -174,6 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const email = document.getElementById("reg-email").value.trim();
       const department = document.getElementById("reg-dept").value.trim();
       const password = document.getElementById("reg-password").value;
+      const confirmPassword = document.getElementById("reg-confirm-password").value;
       const submitBtn = document.getElementById("reg-submit-btn");
 
       if (!fullName || !email || !department || !password) {
@@ -186,6 +208,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      // Check passwords match
+      if (password !== confirmPassword) {
+        showToast("Passwords do not match. Please re-enter.", "error");
+        return;
+      }
+
       submitBtn.disabled = true;
       submitBtn.textContent = "Creating Account...";
 
@@ -195,6 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
           email,
           department,
           password,
+          confirm_password: confirmPassword,
         });
 
         auth.setToken(response.access_token);

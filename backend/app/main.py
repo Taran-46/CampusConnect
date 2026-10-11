@@ -48,10 +48,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS Middleware for seamless local development
+# Configure CORS Middleware for standard local ports (Viva: allows browser to talk to backend safely)
+ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -242,8 +251,10 @@ def get_issues(
         params.append(user_id)
 
     if search:
-        search_term = f"%{search.strip()}%"
-        query += " AND (i.title LIKE ? OR i.description LIKE ?)"
+        # Simple sanitization for viva: escape SQL % and _ so user input is treated as literal text
+        cleaned_search = search.strip().replace("%", "\\%").replace("_", "\\_")
+        search_term = f"%{cleaned_search}%"
+        query += " AND (i.title LIKE ? ESCAPE '\\' OR i.description LIKE ? ESCAPE '\\')"
         params.extend([search_term, search_term])
 
     query += " ORDER BY i.created_at DESC;"
@@ -363,9 +374,10 @@ def update_issue_status(
     """
     cursor = conn.cursor()
 
-    # Check if issue exists
-    cursor.execute("SELECT id FROM issues WHERE id = ?;", (id,))
-    if not cursor.fetchone():
+    # Check if issue exists and get the owner
+    cursor.execute("SELECT id, user_id FROM issues WHERE id = ?;", (id,))
+    existing_issue = cursor.fetchone()
+    if not existing_issue:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Cannot update: Issue with ID {id} does not exist.",
@@ -385,8 +397,8 @@ def update_issue_status(
         conn.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error while updating issue status: {str(exc)}",
-        ) from exc
+            detail="Failed to update issue status due to database error.",
+        )
 
     # Retrieve updated row
     cursor.execute(
@@ -406,11 +418,65 @@ def update_issue_status(
     return format_issue_row(row)
 
 
+@app.delete(
+    "/api/issues/{id}",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+    summary="Delete an issue (Only the student who created it can delete)",
+)
+def delete_issue(
+    id: int,
+    current_user: sqlite3.Row = Depends(get_current_user),
+    conn: sqlite3.Connection = Depends(get_db),
+):
+    """
+    Delete an issue.
+    First-year Viva explanation:
+    - We check if the issue exists.
+    - We check if the logged-in student (current_user['id']) matches the issue creator (issue['user_id']).
+    - If yes, we delete it. If no, we return 403 Forbidden.
+    """
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, user_id FROM issues WHERE id = ?;", (id,))
+    issue = cursor.fetchone()
+
+    if not issue:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Issue with ID {id} not found.",
+        )
+
+    # Simple ownership check
+    if issue["user_id"] != current_user["id"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied: You can only delete issues that you reported.",
+        )
+
+    try:
+        cursor.execute("DELETE FROM issues WHERE id = ?;", (id,))
+        conn.commit()
+        return {"message": "Issue deleted successfully."}
+    except sqlite3.Error:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete issue due to database error.",
+        )
+
+
 # -------------------------------------------------------------
-# Optional Static Frontend Serving from FastAPI
+# Static Frontend Serving from FastAPI
 # -------------------------------------------------------------
 if FRONTEND_DIR.exists() and FRONTEND_DIR.is_dir():
-    # Mount frontend static files so opening http://localhost:8000 directly works seamlessly!
+    # Mount subdirectories so relative paths (css/style.css, js/api.js) work seamlessly
+    css_dir = FRONTEND_DIR / "css"
+    js_dir = FRONTEND_DIR / "js"
+    if css_dir.exists():
+        app.mount("/css", StaticFiles(directory=str(css_dir)), name="css")
+    if js_dir.exists():
+        app.mount("/js", StaticFiles(directory=str(js_dir)), name="js")
+    
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
     @app.get("/", include_in_schema=False)
@@ -426,3 +492,4 @@ if FRONTEND_DIR.exists() and FRONTEND_DIR.is_dir():
         if target_file.exists():
             return FileResponse(str(target_file))
         raise HTTPException(status_code=404, detail="Page not found")
+

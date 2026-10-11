@@ -27,8 +27,9 @@ class IssueStatus(str, Enum):
 class UserRegister(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100, description="Full name of student")
     email: str = Field(..., description="College or personal email address")
-    password: str = Field(..., min_length=6, max_length=128, description="Password (at least 6 characters)")
     department: str = Field(..., min_length=2, max_length=100, description="Department and year, e.g., CS - 3rd Year")
+    password: str = Field(..., min_length=6, max_length=128, description="Password (at least 6 characters)")
+    confirm_password: Optional[str] = Field(None, description="Password confirmation")
 
     @field_validator("email")
     @classmethod
@@ -45,6 +46,14 @@ class UserRegister(BaseModel):
         if not clean:
             raise ValueError("Field cannot be empty or whitespace only")
         return clean
+
+    @field_validator("confirm_password")
+    @classmethod
+    def passwords_match(cls, value: Optional[str], info) -> Optional[str]:
+        # Simple check: make sure confirm_password matches password if provided
+        if value is not None and "password" in info.data and value != info.data["password"]:
+            raise ValueError("Passwords do not match. Please re-enter carefully.")
+        return value
 
 
 class UserLogin(BaseModel):
