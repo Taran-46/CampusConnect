@@ -70,13 +70,15 @@ const auth = {
     if (!navUserContainer) return;
 
     if (user && this.isAuthenticated()) {
-      const initial = user.full_name ? user.full_name.charAt(0).toUpperCase() : "U";
-
-      navUserContainer.innerHTML = `
-        <div class="user-badge" title="${user.department || ""}">
-          <span class="user-avatar-circle">${initial}</span>
-          <span class="user-name">${user.full_name}</span>
-        </div>
+      const fullName = user && user.full_name ? user.full_name : "User";
+    const initial = fullName.charAt(0).toUpperCase();
+    navUserContainer.innerHTML = `
+      <div class="user-badge" title="${user.department || ""}">
+        <span class="user-avatar-circle">${initial}</span>
+        <span class="user-name">${fullName}</span>
+      </div>
+    `;
+        
         <button id="logout-btn" class="btn btn-outline btn-sm" title="Log out of your account">
           Log Out
         </button>
